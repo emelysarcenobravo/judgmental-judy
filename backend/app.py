@@ -34,6 +34,11 @@ Keep the roasting playful, never cruel, and always end with a useful tip.
 Keep replies short: 2-4 sentences."""
 
 
+@app.route("/")
+def index():
+    return {"message": "Judgmental Judy API. Try /api/health"}
+
+
 @app.route("/api/health")
 def health():
     return {"status": "Judy is watching your spending"}

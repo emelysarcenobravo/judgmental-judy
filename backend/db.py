@@ -22,6 +22,8 @@ def get_db():
     if "db" not in g:
         g.db = sqlite3.connect(DB_PATH)
         g.db.row_factory = sqlite3.Row
+        # Cheap no-op once the tables exist; recreates them if judy.db is deleted while running.
+        g.db.executescript(SCHEMA)
     return g.db
 
 
@@ -33,5 +35,3 @@ def close_db(_exception=None):
 
 def init_db(app):
     app.teardown_appcontext(close_db)
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.executescript(SCHEMA)

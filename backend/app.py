@@ -14,7 +14,12 @@ from db import init_db  # noqa: E402
 app = Flask(__name__)
 # Signs the login cookie. Without SECRET_KEY in .env, everyone is logged out on each restart.
 app.secret_key = os.getenv("SECRET_KEY") or secrets.token_hex(32)
-app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    # Deployed sites use https, so only send the login cookie over https there.
+    SESSION_COOKIE_SECURE=os.getenv("SESSION_COOKIE_SECURE", "").lower() == "true",
+)
 CORS(app)
 
 init_db(app)

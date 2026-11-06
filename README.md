@@ -61,11 +61,16 @@ source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-Create a `backend/.env` file for your Claude API key (never commit this file):
+Create a `backend/.env` file for your Claude API key and a secret key for login sessions (never commit this file):
 
 ```
 ANTHROPIC_API_KEY=your-key-here
+SECRET_KEY=any-long-random-string
 ```
+
+Generate a `SECRET_KEY` with `python -c "import secrets; print(secrets.token_hex(32))"`. Without it, users are logged out every time the server restarts.
+
+The SQLite database (`backend/judy.db`) is created automatically the first time the server starts. It is gitignored, so each teammate has their own local accounts.
 
 Start the server:
 
@@ -95,7 +100,18 @@ npm install
 npm run dev
 ```
 
-Visit http://localhost:5173 to view the app.
+Visit http://localhost:5173 to view the app. Keep the Flask server running too: Vite forwards every `/api` request to it, so sign up, log in and log out work from the browser.
+
+### Accounts (login/logout)
+
+| Endpoint | Method | Body | What it does |
+|---|---|---|---|
+| `/api/auth/signup` | POST | `{ name, email, password }` | Creates an account (password 8+ characters) and logs in |
+| `/api/auth/login` | POST | `{ email, password }` | Logs in |
+| `/api/auth/logout` | POST | | Logs out |
+| `/api/auth/me` | GET | | Returns the logged-in user, or `null` |
+
+Passwords are stored hashed, never as plain text. The login is kept in a signed cookie. To require login on a new backend route, add `@login_required` from `auth.py` above it.
 
 ### Useful commands
 
@@ -111,10 +127,14 @@ Visit http://localhost:5173 to view the app.
 ```
 judgmental-judy/
 ├── backend/          # Flask API
-│   ├── app.py
+│   ├── app.py        # app setup and Judy's chat endpoint
+│   ├── auth.py       # sign up, log in, log out
+│   ├── db.py         # SQLite connection and tables
 │   └── requirements.txt
 ├── frontend/         # React + Vite + Tailwind app
 │   ├── src/
+│   │   ├── api.js    # fetch helper for the Flask API
+│   │   └── pages/    # AuthPage (login/sign up), Dashboard
 │   └── package.json
 └── README.md
 ```

@@ -1,14 +1,24 @@
 import os
+import secrets
 
 import anthropic
 from dotenv import load_dotenv
 from flask import Flask, request
 from flask_cors import CORS
 
+from auth import auth
+from db import init_db
+
 load_dotenv()
 
 app = Flask(__name__)
+# Signs the login cookie. Without SECRET_KEY in .env, everyone is logged out on each restart.
+app.secret_key = os.getenv("SECRET_KEY") or secrets.token_hex(32)
+app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
 CORS(app)
+
+init_db(app)
+app.register_blueprint(auth)
 
 client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from .env
 

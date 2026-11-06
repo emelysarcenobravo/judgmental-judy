@@ -3,10 +3,12 @@ import sqlite3
 
 from flask import g
 
-# The database file lives next to this file; *.db is gitignored.
+# With DATABASE_URL (Supabase Postgres) the app uses Postgres; without it, a local
+# SQLite file next to this file (*.db is gitignored).
+DATABASE_URL = os.getenv("DATABASE_URL")
 DB_PATH = os.getenv("DATABASE_PATH", os.path.join(os.path.dirname(__file__), "judy.db"))
 
-SCHEMA = """
+SQLITE_SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     name          TEXT NOT NULL,
@@ -16,14 +18,63 @@ CREATE TABLE IF NOT EXISTS users (
 );
 """
 
+POSTGRES_SCHEMA = """
+CREATE TABLE IF NOT EXISTS users (
+    id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name          TEXT NOT NULL,
+    email         TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+"""
+
+if DATABASE_URL:
+    import psycopg
+    from psycopg.rows import dict_row
+
+    IntegrityError = psycopg.errors.UniqueViolation
+else:
+    IntegrityError = sqlite3.IntegrityError
+
+
+class Database:
+    """Same small API for SQLite and Postgres. Write SQL with ? placeholders."""
+
+    def __init__(self, conn, postgres):
+        self.conn = conn
+        self.postgres = postgres
+
+    def execute(self, sql, params=()):
+        if self.postgres:
+            sql = sql.replace("?", "%s")
+        return self.conn.execute(sql, params)
+
+    def commit(self):
+        self.conn.commit()
+
+    def rollback(self):
+        self.conn.rollback()
+
+    def close(self):
+        self.conn.close()
+
+
+def connect():
+    if DATABASE_URL:
+        # prepare_threshold=None keeps this working through Supabase's connection pooler.
+        conn = psycopg.connect(DATABASE_URL, row_factory=dict_row, prepare_threshold=None)
+        return Database(conn, postgres=True)
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    # Cheap no-op once the tables exist; recreates them if judy.db is deleted while running.
+    conn.executescript(SQLITE_SCHEMA)
+    return Database(conn, postgres=False)
+
 
 def get_db():
     """One connection per request, closed automatically by close_db."""
     if "db" not in g:
-        g.db = sqlite3.connect(DB_PATH)
-        g.db.row_factory = sqlite3.Row
-        # Cheap no-op once the tables exist; recreates them if judy.db is deleted while running.
-        g.db.executescript(SCHEMA)
+        g.db = connect()
     return g.db
 
 
@@ -35,3 +86,6 @@ def close_db(_exception=None):
 
 def init_db(app):
     app.teardown_appcontext(close_db)
+    if DATABASE_URL:
+        with psycopg.connect(DATABASE_URL, prepare_threshold=None) as conn:
+            conn.execute(POSTGRES_SCHEMA)

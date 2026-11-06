@@ -1,11 +1,10 @@
 import re
-import sqlite3
 from functools import wraps
 
 from flask import Blueprint, request, session
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from db import get_db
+from db import IntegrityError, get_db
 
 auth = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -49,16 +48,17 @@ def signup():
 
     db = get_db()
     try:
-        cur = db.execute(
-            "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
+        row = db.execute(
+            "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?) RETURNING id",
             (name, email, generate_password_hash(password)),
-        )
+        ).fetchone()
         db.commit()
-    except sqlite3.IntegrityError:
+    except IntegrityError:
+        db.rollback()
         return {"error": "An account with that email already exists"}, 409
 
     session.clear()
-    session["user_id"] = cur.lastrowid
+    session["user_id"] = row["id"]
     return {"user": public_user(current_user())}, 201
 
 

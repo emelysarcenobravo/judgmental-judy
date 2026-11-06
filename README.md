@@ -70,7 +70,13 @@ SECRET_KEY=any-long-random-string
 
 Generate a `SECRET_KEY` with `python -c "import secrets; print(secrets.token_hex(32))"`. Without it, users are logged out every time the server restarts.
 
-The SQLite database (`backend/judy.db`) is created automatically the first time the server starts. It is gitignored, so each teammate has their own local accounts.
+**Database:** without a `DATABASE_URL`, the app uses a local SQLite file (`backend/judy.db`, created automatically and gitignored), so each teammate has their own local accounts. To use the shared Supabase Postgres database instead, add its connection string to `backend/.env`:
+
+```
+DATABASE_URL=postgresql://postgres.xxxxx:YOUR-PASSWORD@aws-0-us-west-1.pooler.supabase.com:5432/postgres
+```
+
+Find it in Supabase under **Connect** → **Connection string** → **Session pooler**. The `users` table is created automatically on startup.
 
 Start the server:
 

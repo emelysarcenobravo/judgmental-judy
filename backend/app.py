@@ -6,10 +6,10 @@ from dotenv import load_dotenv
 from flask import Flask, request
 from flask_cors import CORS
 
-from auth import auth
-from db import init_db
+load_dotenv()  # before importing db, which reads DATABASE_URL
 
-load_dotenv()
+from auth import auth  # noqa: E402
+from db import init_db  # noqa: E402
 
 app = Flask(__name__)
 # Signs the login cookie. Without SECRET_KEY in .env, everyone is logged out on each restart.

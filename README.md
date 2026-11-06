@@ -28,11 +28,24 @@ Judy's judgmental personality escalates as users approach their discretionary sp
 ## Tech Stack
 
 - **Frontend:** React, Vite, Tailwind CSS, Recharts
-- **Backend:** Python, Flask
-- **Database:** SQLite
+- **Backend:** Python, Flask, Gunicorn (production server)
+- **Database:** Supabase (PostgreSQL) for the shared and deployed app; SQLite for optional local development
+- **Authentication:** Flask sessions with hashed passwords (Werkzeug)
 - **Generative AI:** Anthropic Claude API
 - **Development:** VS Code, Git, GitHub, ESLint
-- **Deployment:** Vercel (frontend), backend hosting TBD
+- **Deployment:** Vercel (frontend), Render (backend), Supabase (database)
+
+### How the pieces connect
+
+```
+Browser ──► Vercel (React app)
+               │  /api/* requests are forwarded (frontend/vercel.json)
+               ▼
+            Render (Flask API) ──► Supabase (PostgreSQL: users, budgets)
+                               └─► Anthropic Claude API (Judy's replies)
+```
+
+The Claude API key and database password live only on the backend (Render, or your local `backend/.env`), never in the frontend.
 
 ## Getting Started
 
@@ -61,11 +74,21 @@ source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-Create a `backend/.env` file for your Claude API key (never commit this file):
+Create a `backend/.env` file (never commit this file; it is gitignored):
 
 ```
+SECRET_KEY=any-long-random-string
+DATABASE_URL=postgresql://postgres.xxxxx:YOUR-PASSWORD@aws-1-us-west-2.pooler.supabase.com:5432/postgres
 ANTHROPIC_API_KEY=your-key-here
 ```
+
+| Variable | Required? | Where to get it |
+|---|---|---|
+| `SECRET_KEY` | Yes | Run `python -c "import secrets; print(secrets.token_hex(32))"`. Without it, users are logged out every time the server restarts. |
+| `DATABASE_URL` | Optional | Supabase → your project → **Connect** → **Connection string** → type **URI**, method **Session pooler**. Ask the team lead for the password; share it privately, never in GitHub or group chats. Leave it out to use a local SQLite file (`backend/judy.db`, created automatically) with your own test accounts. |
+| `ANTHROPIC_API_KEY` | For Judy's chat | [Anthropic Console](https://console.anthropic.com/). Login works without it; only the chat needs it. |
+
+Use a database password with only letters and numbers; symbols like `@ # % /` break the connection string. Tables are created automatically when the server starts.
 
 Start the server:
 
@@ -95,7 +118,18 @@ npm install
 npm run dev
 ```
 
-Visit http://localhost:5173 to view the app.
+Visit http://localhost:5173 to view the app. Keep the Flask server running too: Vite forwards every `/api` request to it, so sign up, log in and log out work from the browser.
+
+### Accounts (login/logout)
+
+| Endpoint | Method | Body | What it does |
+|---|---|---|---|
+| `/api/auth/signup` | POST | `{ name, email, password }` | Creates an account (password 8+ characters) and logs in |
+| `/api/auth/login` | POST | `{ email, password }` | Logs in |
+| `/api/auth/logout` | POST | | Logs out |
+| `/api/auth/me` | GET | | Returns the logged-in user, or `null` |
+
+Passwords are stored hashed, never as plain text. The login is kept in a signed cookie. To require login on a new backend route, add `@login_required` from `auth.py` above it.
 
 ### Useful commands
 
@@ -105,16 +139,51 @@ Visit http://localhost:5173 to view the app.
 | `npm run dev` | `frontend/` | Start the frontend dev server |
 | `npm run lint` | `frontend/` | Check code for errors with ESLint |
 | `npm run build` | `frontend/` | Create a production build (Vercel runs this on deploy) |
+| `gunicorn app:app` | `backend/` | Run the API the way Render does in production |
+
+If `python app.py` says `Address already in use`, an old backend is still running. Stop it with `kill $(lsof -t -iTCP:5001 -sTCP:LISTEN)`.
+
+## Deployment
+
+Pushing to GitHub redeploys automatically: Render rebuilds the backend and Vercel rebuilds the frontend.
+
+### Backend: Render
+
+Web Service connected to this repo:
+
+| Setting | Value |
+|---|---|
+| Root Directory | `backend` |
+| Language | Python 3 (version pinned in `backend/.python-version`) |
+| Build Command | `pip install -r requirements.txt` |
+| Start Command | `gunicorn app:app` |
+| Environment variables | `SECRET_KEY`, `DATABASE_URL`, `ANTHROPIC_API_KEY`, and `SESSION_COOKIE_SECURE=true` |
+
+Check it's running at https://judgmental-judy.onrender.com/api/health. The free plan sleeps after about 15 minutes without visits, so the first request afterward can take up to a minute. Open that link before a demo to wake it up.
+
+### Frontend: Vercel
+
+Project connected to this repo with **Root Directory** set to `frontend` (Vercel detects Vite). No environment variables are needed. `frontend/vercel.json` forwards `/api/*` to the Render backend, so the browser treats the app and API as one site and login cookies work.
+
+### Database: Supabase
+
+Project in its own Supabase organization (separate from other class projects). View data under **Table Editor**. The connection string (with password) goes only in Render's environment variables and teammates' local `backend/.env`.
 
 ### Project structure
 
 ```
 judgmental-judy/
-├── backend/          # Flask API
-│   ├── app.py
-│   └── requirements.txt
-├── frontend/         # React + Vite + Tailwind app
+├── backend/              # Flask API (deployed on Render)
+│   ├── app.py            # app setup and Judy's chat endpoint
+│   ├── auth.py           # sign up, log in, log out
+│   ├── db.py             # Supabase Postgres or local SQLite, and table setup
+│   ├── requirements.txt
+│   └── .python-version   # Python version for Render
+├── frontend/             # React + Vite + Tailwind app (deployed on Vercel)
 │   ├── src/
+│   │   ├── api.js        # fetch helper for the Flask API
+│   │   └── pages/        # AuthPage (login/sign up), Dashboard
+│   ├── vercel.json       # forwards /api to the Render backend
 │   └── package.json
 └── README.md
 ```

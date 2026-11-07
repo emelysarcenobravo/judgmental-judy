@@ -16,6 +16,29 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS budgets (
+    user_id       INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    income_cents  INTEGER NOT NULL CHECK (income_cents >= 0),
+    updated_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS necessities (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name          TEXT NOT NULL,
+    amount_cents  INTEGER NOT NULL CHECK (amount_cents >= 0)
+);
+CREATE TABLE IF NOT EXISTS expenses (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    amount_cents  INTEGER NOT NULL CHECK (amount_cents > 0),
+    category      TEXT NOT NULL,
+    note          TEXT NOT NULL DEFAULT '',
+    spent_on      TEXT NOT NULL,
+    created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS expenses_user_date ON expenses (user_id, spent_on);
+
 """
 
 POSTGRES_SCHEMA = """
@@ -26,6 +49,28 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS budgets (
+    user_id       BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    income_cents  INTEGER NOT NULL CHECK (income_cents >= 0),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS necessities (
+    id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id       BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name          TEXT NOT NULL,
+    amount_cents  INTEGER NOT NULL CHECK (amount_cents >= 0)
+);
+CREATE TABLE IF NOT EXISTS expenses (
+    id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id       BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    amount_cents  INTEGER NOT NULL CHECK (amount_cents > 0),
+    category      TEXT NOT NULL,
+    note          TEXT NOT NULL DEFAULT '',
+    spent_on      DATE NOT NULL,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS expenses_user_date ON expenses (user_id, spent_on);
 """
 
 if DATABASE_URL:

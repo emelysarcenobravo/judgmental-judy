@@ -9,6 +9,7 @@ from flask_cors import CORS
 load_dotenv()  # before importing db, which reads DATABASE_URL
 
 from auth import auth  # noqa: E402
+from budget import budget  # noqa: E402
 from db import init_db  # noqa: E402
 
 app = Flask(__name__)
@@ -24,6 +25,7 @@ CORS(app)
 
 init_db(app)
 app.register_blueprint(auth)
+app.register_blueprint(budget)
 
 client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from .env
 

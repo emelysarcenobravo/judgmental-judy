@@ -1,0 +1,216 @@
+{
+  "name": "Boba Bailey",
+  "description": "Repeat boba and delivery habit. Should land in the disappointed tier (about a quarter of discretionary left).",
+  "month": "2026-11",
+  "income_cents": 280000,
+  "necessities": [
+    {
+      "name": "Rent",
+      "amount_cents": 110000
+    },
+    {
+      "name": "Utilities",
+      "amount_cents": 9000
+    },
+    {
+      "name": "Groceries",
+      "amount_cents": 30000
+    },
+    {
+      "name": "Phone",
+      "amount_cents": 4000
+    },
+    {
+      "name": "Transit pass",
+      "amount_cents": 5000
+    }
+  ],
+  "expenses": [
+    {
+      "amount_cents": 725,
+      "category": "food",
+      "note": "Boba at Tpumps",
+      "spent_on": "2026-11-01"
+    },
+    {
+      "amount_cents": 775,
+      "category": "food",
+      "note": "Boba at Tpumps",
+      "spent_on": "2026-11-02"
+    },
+    {
+      "amount_cents": 725,
+      "category": "food",
+      "note": "Boba at Tpumps",
+      "spent_on": "2026-11-03"
+    },
+    {
+      "amount_cents": 795,
+      "category": "food",
+      "note": "Boba at Tpumps",
+      "spent_on": "2026-11-03"
+    },
+    {
+      "amount_cents": 725,
+      "category": "food",
+      "note": "Boba at Tpumps",
+      "spent_on": "2026-11-04"
+    },
+    {
+      "amount_cents": 775,
+      "category": "food",
+      "note": "Boba at Tpumps",
+      "spent_on": "2026-11-05"
+    },
+    {
+      "amount_cents": 725,
+      "category": "food",
+      "note": "Boba at Tpumps",
+      "spent_on": "2026-11-06"
+    },
+    {
+      "amount_cents": 795,
+      "category": "food",
+      "note": "Boba at Tpumps",
+      "spent_on": "2026-11-07"
+    },
+    {
+      "amount_cents": 725,
+      "category": "food",
+      "note": "Boba at Tpumps",
+      "spent_on": "2026-11-08"
+    },
+    {
+      "amount_cents": 775,
+      "category": "food",
+      "note": "Boba at Tpumps",
+      "spent_on": "2026-11-09"
+    },
+    {
+      "amount_cents": 725,
+      "category": "food",
+      "note": "Boba at Tpumps",
+      "spent_on": "2026-11-10"
+    },
+    {
+      "amount_cents": 3450,
+      "category": "food",
+      "note": "DoorDash",
+      "spent_on": "2026-11-01"
+    },
+    {
+      "amount_cents": 2875,
+      "category": "food",
+      "note": "DoorDash",
+      "spent_on": "2026-11-04"
+    },
+    {
+      "amount_cents": 4120,
+      "category": "food",
+      "note": "DoorDash",
+      "spent_on": "2026-11-06"
+    },
+    {
+      "amount_cents": 3190,
+      "category": "food",
+      "note": "DoorDash",
+      "spent_on": "2026-11-09"
+    },
+    {
+      "amount_cents": 2640,
+      "category": "food",
+      "note": "Uber Eats",
+      "spent_on": "2026-11-03"
+    },
+    {
+      "amount_cents": 3810,
+      "category": "food",
+      "note": "Uber Eats",
+      "spent_on": "2026-11-07"
+    },
+    {
+      "amount_cents": 5800,
+      "category": "food",
+      "note": "Dinner out",
+      "spent_on": "2026-11-02"
+    },
+    {
+      "amount_cents": 6400,
+      "category": "food",
+      "note": "Dinner out",
+      "spent_on": "2026-11-05"
+    },
+    {
+      "amount_cents": 4750,
+      "category": "food",
+      "note": "Dinner out",
+      "spent_on": "2026-11-08"
+    },
+    {
+      "amount_cents": 6800,
+      "category": "shopping",
+      "note": "Shein haul",
+      "spent_on": "2026-11-03"
+    },
+    {
+      "amount_cents": 4230,
+      "category": "shopping",
+      "note": "Amazon impulse buy",
+      "spent_on": "2026-11-06"
+    },
+    {
+      "amount_cents": 5400,
+      "category": "shopping",
+      "note": "Amazon impulse buy",
+      "spent_on": "2026-11-09"
+    },
+    {
+      "amount_cents": 15000,
+      "category": "entertainment",
+      "note": "Concert tickets",
+      "spent_on": "2026-11-05"
+    },
+    {
+      "amount_cents": 3000,
+      "category": "entertainment",
+      "note": "Arcade",
+      "spent_on": "2026-11-08"
+    },
+    {
+      "amount_cents": 1199,
+      "category": "subscriptions",
+      "note": "Spotify",
+      "spent_on": "2026-11-01"
+    },
+    {
+      "amount_cents": 1549,
+      "category": "subscriptions",
+      "note": "Netflix",
+      "spent_on": "2026-11-01"
+    },
+    {
+      "amount_cents": 3900,
+      "category": "subscriptions",
+      "note": "Gym membership",
+      "spent_on": "2026-11-01"
+    },
+    {
+      "amount_cents": 1400,
+      "category": "transportation",
+      "note": "Uber",
+      "spent_on": "2026-11-04"
+    },
+    {
+      "amount_cents": 2200,
+      "category": "transportation",
+      "note": "Uber",
+      "spent_on": "2026-11-07"
+    },
+    {
+      "amount_cents": 1750,
+      "category": "transportation",
+      "note": "Uber",
+      "spent_on": "2026-11-10"
+    }
+  ]
+}

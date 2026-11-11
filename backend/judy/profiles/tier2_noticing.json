@@ -1,0 +1,144 @@
+{
+  "name": "Mid-Month Morgan",
+  "description": "Spending a bit freely. Should land in the noticing tier (roughly 30-59% of discretionary left).",
+  "month": "2026-11",
+  "income_cents": 340000,
+  "necessities": [
+    {
+      "name": "Rent",
+      "amount_cents": 130000
+    },
+    {
+      "name": "Utilities",
+      "amount_cents": 10000
+    },
+    {
+      "name": "Groceries",
+      "amount_cents": 35000
+    },
+    {
+      "name": "Phone",
+      "amount_cents": 5500
+    },
+    {
+      "name": "Transit pass",
+      "amount_cents": 7000
+    }
+  ],
+  "expenses": [
+    {
+      "amount_cents": 1549,
+      "category": "subscriptions",
+      "note": "Netflix",
+      "spent_on": "2026-11-01"
+    },
+    {
+      "amount_cents": 1199,
+      "category": "subscriptions",
+      "note": "Spotify",
+      "spent_on": "2026-11-01"
+    },
+    {
+      "amount_cents": 2999,
+      "category": "subscriptions",
+      "note": "Gym membership",
+      "spent_on": "2026-11-01"
+    },
+    {
+      "amount_cents": 850,
+      "category": "food",
+      "note": "Coffee",
+      "spent_on": "2026-11-02"
+    },
+    {
+      "amount_cents": 850,
+      "category": "food",
+      "note": "Coffee",
+      "spent_on": "2026-11-04"
+    },
+    {
+      "amount_cents": 850,
+      "category": "food",
+      "note": "Coffee",
+      "spent_on": "2026-11-07"
+    },
+    {
+      "amount_cents": 850,
+      "category": "food",
+      "note": "Coffee",
+      "spent_on": "2026-11-09"
+    },
+    {
+      "amount_cents": 3200,
+      "category": "food",
+      "note": "DoorDash",
+      "spent_on": "2026-11-03"
+    },
+    {
+      "amount_cents": 2940,
+      "category": "food",
+      "note": "DoorDash",
+      "spent_on": "2026-11-08"
+    },
+    {
+      "amount_cents": 7200,
+      "category": "food",
+      "note": "Dinner out",
+      "spent_on": "2026-11-05"
+    },
+    {
+      "amount_cents": 5500,
+      "category": "food",
+      "note": "Brunch with friends",
+      "spent_on": "2026-11-09"
+    },
+    {
+      "amount_cents": 11800,
+      "category": "shopping",
+      "note": "Jacket",
+      "spent_on": "2026-11-03"
+    },
+    {
+      "amount_cents": 6400,
+      "category": "shopping",
+      "note": "Online clothes order",
+      "spent_on": "2026-11-06"
+    },
+    {
+      "amount_cents": 3999,
+      "category": "shopping",
+      "note": "Home decor",
+      "spent_on": "2026-11-10"
+    },
+    {
+      "amount_cents": 9500,
+      "category": "entertainment",
+      "note": "Concert tickets",
+      "spent_on": "2026-11-05"
+    },
+    {
+      "amount_cents": 2800,
+      "category": "entertainment",
+      "note": "Movie and snacks",
+      "spent_on": "2026-11-08"
+    },
+    {
+      "amount_cents": 6000,
+      "category": "transportation",
+      "note": "Gas",
+      "spent_on": "2026-11-02"
+    },
+    {
+      "amount_cents": 5500,
+      "category": "transportation",
+      "note": "Gas",
+      "spent_on": "2026-11-09"
+    },
+    {
+      "amount_cents": 2100,
+      "category": "transportation",
+      "note": "Uber",
+      "spent_on": "2026-11-07"
+    }
+  ]
+}

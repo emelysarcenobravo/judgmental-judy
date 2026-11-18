@@ -1,12 +1,12 @@
-﻿"""Throwaway playground for tuning Judy's personality.
+"""Throwaway playground for tuning Judy's personality.
 
 Run from the backend/ folder (with your venv active):
 
-    python -m judy.playground tier3_disappointed              # one run
-    python -m judy.playground tier3_disappointed --runs 5    # same profile 5 times
+    python -m judy.playground level3_disappointed              # one run
+    python -m judy.playground level3_disappointed --runs 5    # same profile 5 times
     python -m judy.playground all --runs 3             # every profile, 3 runs each
-    python -m judy.playground tier4_intervention --runs 5 --message "Can I afford new AirPods?"
-    python -m judy.playground tier4_intervention --dry-run    # print the prompt, no API call
+    python -m judy.playground level5_intervention --runs 5 --message "Can I afford new AirPods?"
+    python -m judy.playground level5_intervention --dry-run    # print the prompt, no API call
 """
 
 import argparse
@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 
 from judy.persona import (
+    LEVELS,
     build_system_prompt,
     compute_summary,
     list_profiles,
@@ -22,12 +23,12 @@ from judy.persona import (
     unverified_amounts,
 )
 
-DEFAULT_MODEL = "claude-haiku-5-5"  # same model app.py uses
+DEFAULT_MODEL = "claude-haiku-5-5"  # same model judy/chat.py uses
 COMMENTARY_REQUEST = "Look at my month so far and give me your take."
 
 
 def ask_judy(client, model, system, user_message):
-    """One Claude call. Mirrors the settings in app.py's /api/chat."""
+    """One Claude call, like /api/chat without tools."""
     response = client.messages.create(
         model=model,
         max_tokens=1000,
@@ -47,7 +48,7 @@ def run_profile(client, args, name):
 
     left = money(summary["left"])
     print("=" * 72)
-    print(f"{profile['name']}  |  tier: {summary['tier']}  |  "
+    print(f"{profile['name']}  |  level: {summary['level']} ({LEVELS[summary['level']]['name']})  |  "
           f"{summary['percent_left']}% left ({left} of {money(summary['discretionary'])})")
     print("=" * 72)
 

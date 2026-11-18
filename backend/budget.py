@@ -101,13 +101,7 @@ def list_expenses():
     months = month_range(request.args.get("month"))
     if months is None:
         return {"error": "Month must look like 2026-11"}, 400
-    rows = get_db().execute(
-        "SELECT id, amount_cents, category, note, spent_on FROM expenses "
-        "WHERE user_id = ? AND spent_on >= ? AND spent_on < ? "
-        "ORDER BY spent_on DESC, id DESC",
-        (session["user_id"], *months),
-    ).fetchall()
-    return {"expenses": [public_expense(r) for r in rows]}
+    return {"expenses": month_expenses(get_db(), session["user_id"], months)}
 
 
 @budget.post("/expenses")
@@ -160,9 +154,25 @@ def get_summary():
     months = month_range(request.args.get("month"))
     if months is None:
         return {"error": "Month must look like 2026-11"}, 400
-    user_id = session["user_id"]
-    db = get_db()
+    return month_summary(get_db(), session["user_id"], months)
 
+
+def month_expenses(db, user_id, months, category=None):
+    """Expenses in a month_range(), newest first. Shared by the API and Judy's tools."""
+    sql = (
+        "SELECT id, amount_cents, category, note, spent_on FROM expenses "
+        "WHERE user_id = ? AND spent_on >= ? AND spent_on < ?"
+    )
+    params = [user_id, *months]
+    if category:
+        sql += " AND category = ?"
+        params.append(category)
+    rows = db.execute(sql + " ORDER BY spent_on DESC, id DESC", params).fetchall()
+    return [public_expense(r) for r in rows]
+
+
+def month_summary(db, user_id, months):
+    """The dashboard numbers for a month_range(). Shared by the API and Judy's tools."""
     row = db.execute("SELECT income_cents FROM budgets WHERE user_id = ?", (user_id,)).fetchone()
     income = row["income_cents"] if row else 0
     necessities = db.execute(

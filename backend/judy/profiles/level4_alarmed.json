@@ -1,0 +1,170 @@
+{
+  "name": "Subscription Sam",
+  "description": "Thirteen subscriptions and a few big splurges. Should land at judgment level 4 (under 15% of discretionary left).",
+  "month": "2026-11",
+  "income_cents": 400000,
+  "necessities": [
+    {
+      "name": "Rent",
+      "amount_cents": 170000
+    },
+    {
+      "name": "Utilities",
+      "amount_cents": 13000
+    },
+    {
+      "name": "Insurance",
+      "amount_cents": 12000
+    },
+    {
+      "name": "Groceries",
+      "amount_cents": 38000
+    }
+  ],
+  "expenses": [
+    {
+      "amount_cents": 1549,
+      "category": "subscriptions",
+      "note": "Netflix",
+      "spent_on": "2026-11-01"
+    },
+    {
+      "amount_cents": 999,
+      "category": "subscriptions",
+      "note": "Hulu",
+      "spent_on": "2026-11-01"
+    },
+    {
+      "amount_cents": 1399,
+      "category": "subscriptions",
+      "note": "Disney+",
+      "spent_on": "2026-11-01"
+    },
+    {
+      "amount_cents": 1699,
+      "category": "subscriptions",
+      "note": "Max",
+      "spent_on": "2026-11-02"
+    },
+    {
+      "amount_cents": 1199,
+      "category": "subscriptions",
+      "note": "Spotify",
+      "spent_on": "2026-11-02"
+    },
+    {
+      "amount_cents": 1399,
+      "category": "subscriptions",
+      "note": "YouTube Premium",
+      "spent_on": "2026-11-03"
+    },
+    {
+      "amount_cents": 4999,
+      "category": "subscriptions",
+      "note": "Gym",
+      "spent_on": "2026-11-03"
+    },
+    {
+      "amount_cents": 1999,
+      "category": "subscriptions",
+      "note": "Xbox Game Pass",
+      "spent_on": "2026-11-04"
+    },
+    {
+      "amount_cents": 1495,
+      "category": "subscriptions",
+      "note": "Audible",
+      "spent_on": "2026-11-05"
+    },
+    {
+      "amount_cents": 299,
+      "category": "subscriptions",
+      "note": "iCloud",
+      "spent_on": "2026-11-05"
+    },
+    {
+      "amount_cents": 2299,
+      "category": "subscriptions",
+      "note": "Adobe",
+      "spent_on": "2026-11-06"
+    },
+    {
+      "amount_cents": 1299,
+      "category": "subscriptions",
+      "note": "Duolingo",
+      "spent_on": "2026-11-06"
+    },
+    {
+      "amount_cents": 7999,
+      "category": "subscriptions",
+      "note": "Meal kit",
+      "spent_on": "2026-11-07"
+    },
+    {
+      "amount_cents": 4200,
+      "category": "food",
+      "note": "Takeout",
+      "spent_on": "2026-11-08"
+    },
+    {
+      "amount_cents": 35000,
+      "category": "shopping",
+      "note": "Gadget",
+      "spent_on": "2026-11-10"
+    },
+    {
+      "amount_cents": 6000,
+      "category": "transportation",
+      "note": "Gas",
+      "spent_on": "2026-11-11"
+    },
+    {
+      "amount_cents": 3800,
+      "category": "food",
+      "note": "Takeout",
+      "spent_on": "2026-11-12"
+    },
+    {
+      "amount_cents": 25000,
+      "category": "entertainment",
+      "note": "Concert",
+      "spent_on": "2026-11-13"
+    },
+    {
+      "amount_cents": 8900,
+      "category": "shopping",
+      "note": "Desk lamp",
+      "spent_on": "2026-11-15"
+    },
+    {
+      "amount_cents": 5100,
+      "category": "food",
+      "note": "Takeout",
+      "spent_on": "2026-11-16"
+    },
+    {
+      "amount_cents": 6999,
+      "category": "entertainment",
+      "note": "Video game",
+      "spent_on": "2026-11-18"
+    },
+    {
+      "amount_cents": 4500,
+      "category": "transportation",
+      "note": "Parking",
+      "spent_on": "2026-11-19"
+    },
+    {
+      "amount_cents": 4600,
+      "category": "food",
+      "note": "Takeout",
+      "spent_on": "2026-11-20"
+    },
+    {
+      "amount_cents": 20000,
+      "category": "other",
+      "note": "Gift",
+      "spent_on": "2026-11-21"
+    }
+  ]
+}

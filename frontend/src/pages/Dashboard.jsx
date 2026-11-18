@@ -4,11 +4,13 @@ import BudgetForm from '../components/BudgetForm'
 import CategoryChart from '../components/CategoryChart'
 import ExpenseForm from '../components/ExpenseForm'
 import ExpenseList from '../components/ExpenseList'
+import JudyCard from '../components/JudyCard'
+import JudyChat from '../components/JudyChat'
 import SummaryCards from '../components/SummaryCards'
 import { monthLabel, shiftMonth, thisMonth } from '../money'
 
 // The logged-in home page. First visit: set up a budget. After that: the month's
-// numbers, adding and deleting expenses, and the spending breakdown.
+// numbers, Judy's take and chat, adding and deleting expenses, and the spending breakdown.
 export default function Dashboard({ user, onLogout }) {
   const firstName = user.name.split(' ')[0]
   const [budget, setBudget] = useState(undefined) // undefined = loading, null = not set up yet
@@ -132,13 +134,17 @@ export default function Dashboard({ user, onLogout }) {
 
         {budget && !editing && data && (
           <div className={`flex flex-col gap-8 transition-opacity ${showingCurrent ? '' : 'opacity-60'}`}>
+            <JudyCard month={month} version={version} />
             <SummaryCards summary={data.summary} />
             <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
               <div className="flex flex-col gap-6">
                 <ExpenseForm onAdded={reload} />
                 <ExpenseList expenses={data.expenses} onDelete={deleteExpense} />
               </div>
-              <CategoryChart byCategory={data.summary.by_category} spentCents={data.summary.spent_cents} />
+              <div className="flex flex-col gap-6">
+                <CategoryChart byCategory={data.summary.by_category} spentCents={data.summary.spent_cents} />
+                <JudyChat month={month} />
+              </div>
             </div>
           </div>
         )}

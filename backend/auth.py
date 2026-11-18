@@ -5,6 +5,8 @@ from flask import Blueprint, request, session
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from db import IntegrityError, get_db
+from judy.demo import get_demo_user
+from judy.persona import list_profiles
 
 auth = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -73,6 +75,18 @@ def login():
     if user is None or not check_password_hash(user["password_hash"], password):
         return {"error": "Incorrect email or password"}, 401
 
+    session.clear()
+    session["user_id"] = user["id"]
+    return {"user": public_user(user)}
+
+
+@auth.post("/demo")
+def demo():
+    """One-click login as a sample profile, with its data reset so every visitor sees a fresh demo."""
+    name = (request.get_json(silent=True) or {}).get("profile")
+    if name not in list_profiles():
+        return {"error": "Unknown demo profile"}, 400
+    user = get_demo_user(get_db(), name)
     session.clear()
     session["user_id"] = user["id"]
     return {"user": public_user(user)}

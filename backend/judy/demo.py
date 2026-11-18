@@ -54,17 +54,22 @@ def get_demo_user(db, profile_name, today=None):
     """The demo user for a profile, created if needed, with fresh data. Returns the users row."""
     profile = load_profile(profile_name)
     email = demo_email(profile_name)
+    # "Subscription Sam" is a nickname for the login buttons. The account is just "Sam",
+    # so the dashboard says "Hi, Sam." like it would for a real user.
+    name = profile["name"].split()[-1]
     user = db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
     if user is None:
         try:
             db.execute(
                 "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
-                (profile["name"], email, generate_password_hash(DEMO_PASSWORD)),
+                (name, email, generate_password_hash(DEMO_PASSWORD)),
             )
             db.commit()
         except IntegrityError:
             db.rollback()  # another visitor created it at the same moment
-        user = db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+    else:
+        db.execute("UPDATE users SET name = ? WHERE id = ?", (name, user["id"]))  # older demo users had the nickname
+    user = db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
 
     reset_demo_data(db, user["id"], profile, today or date.today())
     db.commit()

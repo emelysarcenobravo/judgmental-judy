@@ -34,6 +34,13 @@ User question ──► Claude (Judy) ◄── system prompt: persona + hard ru
 - **persona:** persona, hard rules, DATA block, and 1-5 judgment levels, without tools
 - **agent:** persona plus tools, which is what the app runs
 
+Each sample profile has purchases in two months: this month (the month the eval runs) and last month (the same purchases at 75% of the price). The questions are split the same way:
+
+- **About this month:** "How much have I spent on food this month?", "What's my single biggest purchase?", "How much fun money do I have left?" and "How much have I spent on shopping?" Every number needed is already in the DATA block that the persona and agent versions put in Judy's prompt.
+- **About last month:** "How much did I spend on food last month?" and "Did I spend more this month than last month? By how much?" Last month is not in the DATA block, so Judy can only answer correctly by calling a tool to look it up. These questions show whether the tools work.
+
+A reply counts as correct when the right dollar amount appears in it (within $1). Code checks this, not an AI, so the score can't be talked into a better grade.
+
 | Metric | original | persona | agent |
 |---|---|---|---|
 | Answer accuracy (known-answer questions, checked by code) | 17% | 67% | **100%** |
@@ -148,6 +155,31 @@ npm run dev
 ```
 
 Visit http://localhost:5173 to view the app. Keep the Flask server running too: Vite forwards every `/api` request to it, so sign up, log in and log out work from the browser.
+
+### Run it locally (after setup)
+
+Once steps 1-3 are done, this is all you need each time. Use two terminals, starting from the project folder.
+
+**Terminal 1, the backend:**
+
+```bash
+cd backend
+source venv/bin/activate        # Windows: venv\Scripts\activate
+DATABASE_URL= python app.py     # Windows (PowerShell): $env:DATABASE_URL=""; python app.py
+```
+
+`DATABASE_URL=` (with nothing after the `=`) runs the backend on a local SQLite file, `backend/judy.db`, so trying demo accounts doesn't add users to the team's shared Supabase database. To use Supabase instead, run plain `python app.py`.
+
+**Terminal 2, the frontend:**
+
+```bash
+cd frontend
+npm run dev
+```
+
+Open http://localhost:5173 and click any demo account, or sign up. Stop either server with `Ctrl+C`.
+
+If the page shows a **502 error**, the backend isn't running: start it in terminal 1. If `python app.py` says `Address already in use`, an old backend is still running. Stop it with `kill $(lsof -t -iTCP:5001 -sTCP:LISTEN)` and try again.
 
 ### Accounts (login/logout)
 

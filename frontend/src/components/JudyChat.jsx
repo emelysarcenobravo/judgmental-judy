@@ -17,10 +17,13 @@ export default function JudyChat({ month }) {
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
-  const endRef = useRef(null)
+  const listRef = useRef(null)
 
+  // Keep the newest message in view by scrolling the chat box itself. scrollIntoView
+  // would scroll the whole page down to the chat as soon as the dashboard loads.
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: 'nearest' })
+    const list = listRef.current
+    if (list) list.scrollTop = list.scrollHeight
   }, [messages, sending])
 
   async function send(text) {
@@ -49,7 +52,7 @@ export default function JudyChat({ month }) {
     <section className="flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-sm shadow-violet-100">
       <h2 className="text-lg font-extrabold text-violet-950">Ask Judy</h2>
 
-      <div className="flex max-h-96 flex-col gap-3 overflow-y-auto" aria-live="polite">
+      <div ref={listRef} className="flex max-h-96 flex-col gap-3 overflow-y-auto" aria-live="polite">
         {messages.length === 0 && (
           <div className="flex flex-wrap gap-2">
             {SUGGESTIONS.map((s) => (
@@ -81,7 +84,6 @@ export default function JudyChat({ month }) {
           ),
         )}
         {sending && <p className="self-start px-1 text-sm text-violet-500">Judy is typing…</p>}
-        <div ref={endRef} />
       </div>
 
       {error && (

@@ -1,12 +1,15 @@
-"""POST /api/chat: talk to Judy about your own budget.
+"""POST /api/chat (talk to Judy) and GET /api/commentary (her dashboard card).
 
 The browser sends ONLY the conversation. Every number Judy sees is read from the
-database for the logged-in user, so nobody can feed her fake figures.
+database for the logged-in user, so nobody can feed her fake figures. This month's
+numbers go in the system prompt's DATA block, and tools let her look up anything else.
 """
 
+import json
 import os
 import time
 from collections import defaultdict, deque
+from functools import wraps
 
 import anthropic
 from flask import Blueprint, request, session
@@ -14,20 +17,37 @@ from flask import Blueprint, request, session
 from auth import login_required
 from db import get_db
 from judy.context import build_judy_inputs
-from judy.persona import build_system_prompt
+from judy.persona import LEVELS, build_system_prompt
+from judy.tools import TOOLS, run_tool
 
 judy = Blueprint("judy", __name__, url_prefix="/api")
 
 MODEL = "claude-haiku-5-5"
-MAX_TOKENS = 1000          # replies are ~100 words; this is just a safety ceiling
+MAX_TOKENS = 16000         # a ceiling, not a target: replies are ~100 words, but tool turns and thinking need room
+MAX_TOOL_ROUNDS = 4        # stops a confused model from looking things up forever
 MAX_MESSAGES = 20          # most recent turns the browser may send
 MAX_MESSAGE_CHARS = 1000
 
-# Simple in-memory rate limit per user. Fine for one gunicorn worker (Render's default);
-# with several workers each would count separately.
-RATE_LIMIT = 20            # requests...
-RATE_WINDOW_SECONDS = 600  # ...per 10 minutes
+# Simple in-memory rate limit per user. Fine for one gunicorn worker (Render's default),
+# but with several workers each would count separately.
+RATE_LIMITS = {"chat": 20, "commentary": 40}  # requests...
+RATE_WINDOW_SECONDS = 600                       # ...per 10 minutes
 _recent_requests = defaultdict(deque)
+
+COMMENTARY_REQUEST = """Write your dashboard card about this month. Same voice and rules as always,
+but split it into three parts: a punchy headline of at most 6 words, a roast of 1-2 sentences,
+and one tip (without a "Tip:" label)."""
+
+COMMENTARY_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "headline": {"type": "string"},
+        "roast": {"type": "string"},
+        "tip": {"type": "string"},
+    },
+    "required": ["headline", "roast", "tip"],
+    "additionalProperties": False,
+}
 
 _client = None
 
@@ -39,12 +59,12 @@ def get_client():
     return _client
 
 
-def rate_limited(user_id):
+def rate_limited(user_id, kind):
     now = time.monotonic()
-    recent = _recent_requests[user_id]
+    recent = _recent_requests[(user_id, kind)]
     while recent and now - recent[0] > RATE_WINDOW_SECONDS:
         recent.popleft()
-    if len(recent) >= RATE_LIMIT:
+    if len(recent) >= RATE_LIMITS[kind]:
         return True
     recent.append(now)
     return False
@@ -71,48 +91,126 @@ def clean_messages(raw):
     return messages, None
 
 
+def ask_judy(db, user_id, messages, system, use_tools=True):
+    """Run the conversation through Claude, letting it call tools until it has an answer.
+    Returns {reply, tools_used, usage}. Anthropic API errors are left for the caller."""
+    messages = list(messages)
+    tools_used = []
+    usage = {"input_tokens": 0, "output_tokens": 0}
+
+    for _ in range(MAX_TOOL_ROUNDS + 1):
+        response = get_client().messages.create(
+            model=MODEL,
+            max_tokens=MAX_TOKENS,
+            system=system,
+            messages=messages,
+            output_config={"effort": "low"},
+            **({"tools": TOOLS} if use_tools else {}),
+        )
+        usage["input_tokens"] += response.usage.input_tokens
+        usage["output_tokens"] += response.usage.output_tokens
+
+        if response.stop_reason == "refusal":
+            reply = "Even Judy won't touch that one. Ask me about your budget instead."
+            return {"reply": reply, "tools_used": tools_used, "usage": usage}
+        if response.stop_reason != "tool_use":
+            break
+
+        # Claude asked for data: run every tool it called and send all the results back together.
+        messages.append({"role": "assistant", "content": response.content})
+        results = []
+        for block in response.content:
+            if block.type != "tool_use":
+                continue
+            tools_used.append(block.name)
+            try:
+                content, is_error = run_tool(db, user_id, block.name, block.input), False
+            except ValueError as e:
+                content, is_error = str(e), True
+            results.append({"type": "tool_result", "tool_use_id": block.id, "content": content, "is_error": is_error})
+        messages.append({"role": "user", "content": results})
+
+    reply = "".join(b.text for b in response.content if b.type == "text").strip()
+    return {"reply": reply, "tools_used": tools_used, "usage": usage}
+
+
+def write_card(system):
+    """Judy's dashboard card as {headline, roast, tip}. The schema guarantees valid JSON."""
+    response = get_client().messages.create(
+        model=MODEL,
+        max_tokens=MAX_TOKENS,
+        system=system,
+        messages=[{"role": "user", "content": COMMENTARY_REQUEST}],
+        output_config={"effort": "low", "format": {"type": "json_schema", "schema": COMMENTARY_SCHEMA}},
+    )
+    if response.stop_reason == "refusal":
+        return {"headline": "No comment.", "roast": "Judy is choosing silence today.", "tip": "Log a few expenses and check back."}
+    card = json.loads(next(b.text for b in response.content if b.type == "text"))
+    card["tip"] = card["tip"].removeprefix("Tip:").strip()  # the UI adds its own "Tip:" label
+    return card
+
+
+def claude_endpoint(kind):
+    """Shared checks for Judy's endpoints: API key, rate limit, and friendly Claude errors."""
+    def decorator(view):
+        @wraps(view)
+        def wrapped(*args, **kwargs):
+            if not os.getenv("ANTHROPIC_API_KEY"):
+                return {"error": "Judy isn't connected to Claude yet (missing ANTHROPIC_API_KEY)"}, 500
+            if rate_limited(session["user_id"], kind):
+                return {"error": "Judy needs a breather. Try again in a few minutes."}, 429
+            try:
+                return view(*args, **kwargs)
+            except anthropic.AuthenticationError:
+                return {"error": "Invalid ANTHROPIC_API_KEY"}, 500
+            except anthropic.RateLimitError:
+                return {"error": "Judy needs a breather. Try again in a moment."}, 429
+            except anthropic.APIStatusError as e:
+                return {"error": e.message}, 502
+            except anthropic.APIConnectionError:
+                return {"error": "Could not reach the Claude API"}, 502
+        return wrapped
+    return decorator
+
+
+def load_inputs(month):
+    """(profile, summary, error response) for the logged-in user."""
+    try:
+        profile, summary = build_judy_inputs(get_db(), session["user_id"], month)
+    except ValueError as e:  # bad month format
+        return None, None, ({"error": str(e)}, 400)
+    if profile is None:
+        return None, None, ({"error": "Set up your budget first so Judy has something to judge"}, 400)
+    return profile, summary, None
+
+
+def level_fields(summary):
+    return {"level": summary["level"], "level_name": LEVELS[summary["level"]]["name"]}
+
+
 @judy.post("/chat")
 @login_required
+@claude_endpoint("chat")
 def chat():
     data = request.get_json(silent=True) or {}
     messages, error = clean_messages(data.get("messages"))
     if error:
         return {"error": error}, 400
+    profile, summary, error = load_inputs(data.get("month"))
+    if error:
+        return error
 
-    user_id = session["user_id"]
-    try:
-        profile, summary = build_judy_inputs(get_db(), user_id, data.get("month"))
-    except ValueError as e:  # bad month format
-        return {"error": str(e)}, 400
-    if profile is None:
-        return {"error": "Set up your budget first so Judy has something to judge"}, 400
-
-    if not os.getenv("ANTHROPIC_API_KEY"):
-        return {"error": "Judy isn't connected to Claude yet (missing ANTHROPIC_API_KEY)"}, 500
-    if rate_limited(user_id):
-        return {"error": "Judy needs a breather. Try again in a few minutes."}, 429
-
-    try:
-        response = get_client().messages.create(
-            model=MODEL,
-            max_tokens=MAX_TOKENS,
-            system=build_system_prompt(profile, summary),
-            messages=messages,
-            output_config={"effort": "low"},
-        )
-    except anthropic.AuthenticationError:
-        return {"error": "Invalid ANTHROPIC_API_KEY"}, 500
-    except anthropic.RateLimitError:
-        return {"error": "Judy needs a breather. Try again in a moment."}, 429
-    except anthropic.APIStatusError as e:
-        return {"error": e.message}, 502
-    except anthropic.APIConnectionError:
-        return {"error": "Could not reach the Claude API"}, 502
-
-    if response.stop_reason == "refusal":
-        return {"reply": "Even Judy won't touch that one. Ask me about your budget instead.", "tier": summary["tier"]}
-
-    reply = next((b.text for b in response.content if b.type == "text"), "").strip()
-    if not reply:
+    result = ask_judy(get_db(), session["user_id"], messages, build_system_prompt(profile, summary))
+    if not result["reply"]:
         return {"error": "Judy had nothing to say. Try again."}, 502
-    return {"reply": reply, "tier": summary["tier"]}
+    return {"reply": result["reply"], "tools_used": result["tools_used"], **level_fields(summary)}
+
+
+@judy.get("/commentary")
+@login_required
+@claude_endpoint("commentary")
+def commentary():
+    profile, summary, error = load_inputs(request.args.get("month"))
+    if error:
+        return error
+    return {**write_card(build_system_prompt(profile, summary)), **level_fields(summary)}

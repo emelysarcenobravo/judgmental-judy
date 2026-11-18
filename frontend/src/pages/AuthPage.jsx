@@ -1,6 +1,16 @@
 import { useState } from 'react'
 import { api } from '../api'
 
+// Sample profiles from backend/judy/profiles/, one per judgment level, so visitors can
+// try Judy without an account and watch her get harsher.
+const DEMOS = [
+  { profile: 'level1_comfortable', label: 'Comfortable Casey', level: 1 },
+  { profile: 'level2_noticing', label: 'Mid-Month Morgan', level: 2 },
+  { profile: 'level3_disappointed', label: 'Boba Bailey', level: 3 },
+  { profile: 'level4_alarmed', label: 'Subscription Sam', level: 4 },
+  { profile: 'level5_intervention', label: 'Overdrawn Omar', level: 5 },
+]
+
 function Field({ label, ...props }) {
   return (
     <label className="flex flex-col gap-1.5 text-sm font-medium text-violet-950">
@@ -34,6 +44,18 @@ export default function AuthPage({ onAuth }) {
     } catch (err) {
       setError(err.message)
     } finally {
+      setLoading(false)
+    }
+  }
+
+  async function tryDemo(profile) {
+    setError('')
+    setLoading(true)
+    try {
+      const data = await api('/auth/demo', { method: 'POST', body: { profile } })
+      onAuth(data.user)
+    } catch (err) {
+      setError(err.message)
       setLoading(false)
     }
   }
@@ -107,6 +129,26 @@ export default function AuthPage({ onAuth }) {
               {isSignup ? 'Log in' : 'Create an account'}
             </button>
           </p>
+
+          <div className="flex flex-col gap-3 border-t border-violet-100 pt-5">
+            <p className="text-center text-sm font-medium text-violet-700">
+              Or try a demo account, from mildly judged to full intervention
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {DEMOS.map((d) => (
+                <button
+                  key={d.profile}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => tryDemo(d.profile)}
+                  className="flex flex-col items-center rounded-xl border border-violet-200 px-3 py-2 text-sm font-bold text-violet-800 transition hover:bg-violet-50 disabled:opacity-60"
+                >
+                  {d.label}
+                  <span className="text-xs font-medium text-violet-500">Judgment {d.level}/5</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </form>
       </section>
     </main>

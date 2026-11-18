@@ -28,37 +28,60 @@ User question ──► Claude (Judy) ◄── system prompt: persona + hard ru
 
 ## How we evaluated Judy
 
-`backend/evals/run_eval.py` runs 52 test conversations (9 questions for each of the 5 sample profiles, one per judgment level, plus 7 red-team prompts) through three versions of Judy, then scores every reply:
+We built three versions of Judy over the project and tested all three on the same questions, to measure what each improvement actually changed. The columns in the table below are **versions of Judy, not people using the app**. No real users or real financial data are involved, only the 5 made-up sample profiles.
 
-- **original:** the first prototype, a 5-line prompt plus `{remaining, spent}`
-- **persona:** persona, hard rules, DATA block, and 1-5 judgment levels, without tools
-- **agent:** persona plus tools, which is what the app runs
+| Version | What Judy gets |
+|---|---|
+| **v1: first prototype** | A 5-line personality prompt plus two numbers: money spent and money left. |
+| **v2: persona + DATA block, no tools** | A detailed persona with hard rules, a 1-5 judgment level, and a DATA block with every number from **this month**, all calculated by code. |
+| **v3: + tools (current app)** | Everything in v2, plus tools to look up other months, full purchase lists, and repeat purchases in the database. |
 
-Each sample profile has purchases in two months: this month (the month the eval runs) and last month (the same purchases at 75% of the price). The questions are split the same way:
+`backend/evals/run_eval.py` asks each version the same 52 questions: 9 questions for each of the 5 sample profiles, plus 7 red-team prompts that try to get Judy to give harmful advice or break her rules. Each sample profile has purchases in two months, this month and last month (the same purchases at 75% of the price).
 
-- **About this month:** "How much have I spent on food this month?", "What's my single biggest purchase?", "How much fun money do I have left?" and "How much have I spent on shopping?" Every number needed is already in the DATA block that the persona and agent versions put in Judy's prompt.
-- **About last month:** "How much did I spend on food last month?" and "Did I spend more this month than last month? By how much?" Last month is not in the DATA block, so Judy can only answer correctly by calling a tool to look it up. These questions show whether the tools work.
+**What "this month" and "last month" mean in the table.** Six of the 9 questions have one correct dollar answer, so code can check them. They're split by which month the answer comes from:
 
-A reply counts as correct when the right dollar amount appears in it (within $1). Code checks this, not an AI, so the score can't be talked into a better grade.
+- **Questions about this month's spending:** "How much have I spent on food this month?", "What's my single biggest purchase this month?", "How much fun money do I have left?" and "How much have I spent on shopping?" The answers are in v2's and v3's DATA block, so this row tests whether Judy reads her data correctly.
+- **Questions about last month's spending:** "How much did I spend on food last month?" and "Did I spend more this month than last month? By how much?" Last month is not in the DATA block, so Judy can only answer by calling a tool. This row tests whether the tools work.
 
-| Metric | original | persona | agent |
+A reply counts as correct when the right dollar amount appears in it (within $1). Code checks this, not an AI, so the score can't be talked into a better grade. The other 3 questions are open-ended ("Roast my spending", "Should I buy $120 headphones?", "What do I keep buying?") and are graded only by the judge below.
+
+| Metric | v1: first prototype | v2: persona + DATA block, no tools | v3: + tools (current app) |
 |---|---|---|---|
-| Answer accuracy (known-answer questions, checked by code) | 17% | 67% | **100%** |
-| ... about this month | 25% | 100% | **100%** |
-| ... about last month | 0% | 0% | **100%** |
+| Answer accuracy, all fact questions | 17% | 67% | **100%** |
+| ... questions about this month's spending | 25% | 100% | **100%** |
+| ... questions about last month's spending | 0% | 0% | **100%** |
 | Replies with a factual error (LLM judge vs. real data) | 67% | 27% | **4%** |
 | Tone calibration (Spearman ρ, harshness vs. % spent) | +0.62 | +0.72 | **+0.84** |
 | Red-team safety pass rate (7 prompts) | 100% | 100% | 100% |
 | Latency p50 | 1.4s | 1.8s | 3.7s |
 | Cost per 1,000 replies | $0.10 | $0.42 | $0.64 |
 
+How to read the other rows:
+
+- **Replies with a factual error:** a stronger model (Claude Opus 5.5) acts as a judge. It sees the profile's real data and lists any wrong amount or made-up purchase in each reply.
+- **Tone calibration:** the judge also rates how harsh each reply sounds, from 1 to 5. Spearman ρ measures how well harshness rises as more of the budget is spent. +1.0 would be a perfect match, and 0 would mean no relationship.
+- **Tool use:** v3 called a tool on 10 of 10 questions that needed last month's data and on 0 of 35 that didn't, with exactly one call each time. It only looks things up when it has to.
+
 What we learned:
 
-- **The DATA block fixed this month's numbers, and tools fixed everything else.** Without tools, Judy honestly said she couldn't see last month (most of the persona version's errors). With tools, she looks it up and gets it right every time, for about 2 seconds and $0.0002 more per reply.
+- **The DATA block fixed this month's numbers, and tools fixed everything else.** Without tools, v2 honestly said it couldn't see last month, which accounts for most of its errors. With tools, v3 looks it up and gets it right every time, for about 2 seconds and $0.0002 more per reply.
 - **The eval caught real problems.** Early runs showed Judy misreading "84% of budget" as money spent (we reworded the DATA block) and levels 4 and 5 sounding no louder than level 3 (we added an explicit volume scale per level, which raised tone calibration from +0.72 to +0.84).
-- **Limits:** one run of 52 cases per version, so results move a few points between runs. Harshness is graded by an LLM judge (Claude Opus 5.5), not people. Levels 4 and 5 still score about the same.
+- **Limits:** one run of 52 questions per version, so results move a few points between runs. Harshness is graded by an LLM judge, not people. Levels 4 and 5 still score about the same.
 
 Full results are in [`backend/evals/results/RESULTS.md`](backend/evals/results/RESULTS.md), and every reply with its grade is in `latest.json`.
+
+## Generative AI techniques used
+
+| Topic | How Judy uses it |
+|---|---|
+| **Prompt engineering: role-based prompting** | Judy's persona is a detailed role ("a sharp, funny friend who has seen your bank statement") with a voice for each judgment level. |
+| **Prompt engineering: providing context** | An LLM knows nothing about the user unless told. The DATA block gives Judy every number she needs, so she never has to guess. |
+| **Task decomposition** | The job is split between code and the model. Python does the math and picks the judgment level, and Claude only writes the words. |
+| **AI agents and tool use (function calling)** | Judy runs a goal, action, observation loop: she decides when she needs data, calls a tool, reads the result, and answers. The backend defines the tools and runs them. |
+| **Structured outputs** | The dashboard card must match a JSON schema, so the UI always gets valid data. |
+| **Reducing hallucination** | Numbers come only from the DATA block or tools, copied exactly. Judy is told to say she doesn't know rather than guess. |
+| **Model evaluation** | Known-answer questions checked by code, an LLM-as-a-judge for open-ended replies, and factors beyond accuracy (latency and cost). |
+| **AI safety and ethics** | Red-team testing, hard rules against harmful financial advice and insults, crisis resources for distressed users, prompt-injection defenses for user-typed text, and privacy (users' names and emails are never sent to Claude). |
 
 ## Features
 

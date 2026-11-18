@@ -54,6 +54,12 @@ from judy.persona import build_system_prompt, list_profiles, load_profile, money
 from judy.tools import repeat_purchases  # noqa: E402
 
 MODES = ["original", "persona", "agent"]
+# Column names for the results table. These are versions of Judy, not users.
+MODE_LABELS = {
+    "original": "v1: first prototype",
+    "persona": "v2: persona + DATA block, no tools",
+    "agent": "v3: + tools (current app)",
+}
 JUDGE_MODEL = "claude-opus-5-5"
 PRICE_IN, PRICE_OUT = 0.10, 0.50  # Claude Haiku 5.5, $ per million tokens (prompts under 100K tokens)
 RESULTS = Path(__file__).resolve().parent / "results"
@@ -311,9 +317,9 @@ def fmt(value, kind):
 
 
 METRICS = [
-    ("Answer accuracy, all known-answer questions", "answer_accuracy", "pct"),
-    ("... about this month", "answer_accuracy_this_month", "pct"),
-    ("... about last month", "answer_accuracy_other_months", "pct"),
+    ("Answer accuracy, all fact questions", "answer_accuracy", "pct"),
+    ("... questions about this month's spending", "answer_accuracy_this_month", "pct"),
+    ("... questions about last month's spending", "answer_accuracy_other_months", "pct"),
     ("Replies with a factual error (hallucination)", "hallucination_rate", "pct"),
     ("Tone calibration (Spearman ρ, harshness vs. % spent)", "tone_spearman", "rho"),
     ("Red-team safety pass rate", "safety_pass_rate", "pct"),
@@ -333,13 +339,13 @@ def report(scores, total_cases):
         f"(one per judgment level) + {len(RED_TEAM)} red-team prompts. Reply model `{MODEL}`, judge model `{JUDGE_MODEL}`.",
         "Reproduce with `python evals/run_eval.py` from `backend/`. Every reply and grade is in `latest.json`.",
         "",
-        "| Metric | " + " | ".join(modes) + " |",
+        "| Metric | " + " | ".join(MODE_LABELS[m] for m in modes) + " |",
         "|---|" + "---|" * len(modes),
     ]
     for label, key, kind in METRICS:
         lines.append(f"| {label} | " + " | ".join(fmt(scores[m][key], kind) for m in modes) + " |")
     lines += ["", "Mean harshness (1-5, from the judge) at each judgment level:", "",
-              "| Judgment level | " + " | ".join(modes) + " |", "|---|" + "---|" * len(modes)]
+              "| Judgment level | " + " | ".join(MODE_LABELS[m] for m in modes) + " |", "|---|" + "---|" * len(modes)]
     for level in range(1, 6):
         lines.append(f"| {level} | " + " | ".join(str(scores[m]["harshness_by_level"].get(level, "n/a")) for m in modes) + " |")
     return "\n".join(lines) + "\n"

@@ -3,6 +3,7 @@ import { api } from '../api'
 
 // Judgment level (1-5, picked by backend/judy/persona.py from % of fun money left) -> look.
 const LEVELS = {
+    0: { emoji: '💙', badge: 'bg-sky-100 text-sky-800' },
   1: { emoji: '😌', badge: 'bg-emerald-100 text-emerald-800' },
   2: { emoji: '🙂', badge: 'bg-teal-100 text-teal-800' },
   3: { emoji: '🤨', badge: 'bg-amber-100 text-amber-800' },
@@ -44,7 +45,7 @@ export default function JudyCard({ month, version }) {
           <span className="text-sm font-bold uppercase tracking-widest text-violet-600">Judy says</span>
           {card && (
             <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold capitalize ${look.badge}`}>
-              {card.level_name} · {card.level}/5
+                   {card.level_name}{card.level > 0 && ` · ${card.level}/5`}
             </span>
           )}
         </div>

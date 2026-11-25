@@ -112,7 +112,8 @@ def ask_judy(db, user_id, messages, system, use_tools=True):
     tools_used = []
     usage = {"input_tokens": 0, "output_tokens": 0}
 
-    for _ in range(MAX_TOOL_ROUNDS + 1):
+    for round_number in range(MAX_TOOL_ROUNDS + 1):
+        last_round = round_number == MAX_TOOL_ROUNDS
         response = get_client().messages.create(
             model=MODEL,
             max_tokens=MAX_TOKENS,
@@ -120,7 +121,11 @@ def ask_judy(db, user_id, messages, system, use_tools=True):
             messages=messages,
             output_config={"effort": "low"},
             **({"tools": TOOLS} if use_tools else {}),
+            # Last call: keep the tools defined (the history contains tool calls) but
+            # forbid using them, so Claude has to write its answer.
+            **({"tool_choice": {"type": "none"}} if use_tools and last_round else {}),
         )
+
         usage["input_tokens"] += response.usage.input_tokens
         usage["output_tokens"] += response.usage.output_tokens
 
@@ -213,8 +218,9 @@ def load_inputs(month):
 
 
 def level_fields(summary):
+    if summary["discretionary"] <= 0:  # bills alone exceed income: no judgment level applies
+        return {"level": 0, "level_name": "tight month"}
     return {"level": summary["level"], "level_name": LEVELS[summary["level"]]["name"]}
-
 
 @judy.post("/chat")
 @login_required

@@ -22,9 +22,9 @@ def month_range(value):
     """'2026-11' -> ('2026-11-01', '2026-12-01'); this month when value is empty. None if invalid."""
     try:
         start = date.fromisoformat(f"{value}-01") if value else date.today().replace(day=1)
-    except ValueError:
+        end = date(start.year + start.month // 12, start.month % 12 + 1, 1)
+    except ValueError:  # bad format, or a year too big for Python to represent
         return None
-    end = date(start.year + start.month // 12, start.month % 12 + 1, 1)
     return start.isoformat(), end.isoformat()
 
 

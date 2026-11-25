@@ -8,6 +8,11 @@ numbers go in the system prompt's DATA block, and tools let her look up anything
 import json
 import os
 import time
+import hashlib                                  # add
+import json
+import os
+import time
+from collections import OrderedDict, defaultdict, deque   # add OrderedDict
 from collections import defaultdict, deque
 from functools import wraps
 
@@ -30,9 +35,18 @@ MAX_MESSAGE_CHARS = 1000
 
 # Simple in-memory rate limit per user. Fine for one gunicorn worker (Render's default),
 # but with several workers each would count separately.
-RATE_LIMITS = {"chat": 20, "commentary": 40}  # requests...
+RATE_LIMITS = {"chat": 60, "commentary": 120}  # requests...
 RATE_WINDOW_SECONDS = 600                       # ...per 10 minutes
 _recent_requests = defaultdict(deque)
+
+# Cache for the dashboard card. The key is the user plus a hash of the whole system prompt,
+# which holds the level, today's date and every number, so any change to spending (or a new
+# day) is automatically a different key. In memory, so each gunicorn worker has its own.
+CARD_CACHE_MAX = 200
+CARD_CACHE_SECONDS = 3600
+_card_cache = OrderedDict()  # (user_id, prompt hash) -> (saved_at, card)
+
+REFUSAL_CARD = {"headline": "No comment.", "roast": "Judy is choosing silence today.", "tip": "Log a few expenses and check back."}
 
 COMMENTARY_REQUEST = """Write your dashboard card about this month. Same voice and rules as always,
 but split it into three parts: a punchy headline of at most 6 words, a roast of 1-2 sentences,
@@ -133,6 +147,20 @@ def ask_judy(db, user_id, messages, system, use_tools=True):
     reply = "".join(b.text for b in response.content if b.type == "text").strip()
     return {"reply": reply, "tools_used": tools_used, "usage": usage}
 
+def cached_card(user_id, system):
+    """(key, card). card is None on a miss."""
+    key = (user_id, hashlib.sha256(system.encode()).hexdigest())
+    hit = _card_cache.get(key)
+    if hit and time.monotonic() - hit[0] < CARD_CACHE_SECONDS:
+        return key, hit[1]
+    return key, None
+
+
+def remember_card(key, card):
+    _card_cache[key] = (time.monotonic(), card)
+    _card_cache.move_to_end(key)
+    while len(_card_cache) > CARD_CACHE_MAX:
+        _card_cache.popitem(last=False)  # drop the oldest
 
 def write_card(system):
     """Judy's dashboard card as {headline, roast, tip}. The schema guarantees valid JSON."""
@@ -144,20 +172,20 @@ def write_card(system):
         output_config={"effort": "low", "format": {"type": "json_schema", "schema": COMMENTARY_SCHEMA}},
     )
     if response.stop_reason == "refusal":
-        return {"headline": "No comment.", "roast": "Judy is choosing silence today.", "tip": "Log a few expenses and check back."}
+        return REFUSAL_CARD
     card = json.loads(next(b.text for b in response.content if b.type == "text"))
     card["tip"] = card["tip"].removeprefix("Tip:").strip()  # the UI adds its own "Tip:" label
     return card
 
 
-def claude_endpoint(kind):
+def claude_endpoint(kind, limit = True):
     """Shared checks for Judy's endpoints: API key, rate limit, and friendly Claude errors."""
     def decorator(view):
         @wraps(view)
         def wrapped(*args, **kwargs):
             if not os.getenv("ANTHROPIC_API_KEY"):
                 return {"error": "Judy isn't connected to Claude yet (missing ANTHROPIC_API_KEY)"}, 500
-            if rate_limited(session["user_id"], kind):
+            if limit and rate_limited(session["user_id"], kind):
                 return {"error": "Judy needs a breather. Try again in a few minutes."}, 429
             try:
                 return view(*args, **kwargs)
@@ -208,9 +236,17 @@ def chat():
 
 @judy.get("/commentary")
 @login_required
-@claude_endpoint("commentary")
+@claude_endpoint("commentary", limit=False)  # limit is checked below, only when Claude is called
 def commentary():
     profile, summary, error = load_inputs(request.args.get("month"))
     if error:
         return error
-    return {**write_card(build_system_prompt(profile, summary)), **level_fields(summary)}
+    system = build_system_prompt(profile, summary)
+    key, card = cached_card(session["user_id"], system)
+    if card is None:
+        if rate_limited(session["user_id"], "commentary"):
+            return {"error": "Judy needs a breather. Try again in a few minutes."}, 429
+        card = write_card(system)
+        if card is not REFUSAL_CARD:
+            remember_card(key, card)
+    return {**card, **level_fields(summary)}

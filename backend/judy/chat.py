@@ -107,10 +107,9 @@ def clean_messages(raw):
 
 def ask_judy(db, user_id, messages, system, use_tools=True):
     """Run the conversation through Claude, letting it call tools until it has an answer.
-    Returns {reply, tools_used, usage}. Anthropic API errors are left for the caller."""
+    Returns {reply, tools_used}. Anthropic API errors are left for the caller."""
     messages = list(messages)
     tools_used = []
-    usage = {"input_tokens": 0, "output_tokens": 0}
 
     for round_number in range(MAX_TOOL_ROUNDS + 1):
         last_round = round_number == MAX_TOOL_ROUNDS
@@ -126,12 +125,9 @@ def ask_judy(db, user_id, messages, system, use_tools=True):
             **({"tool_choice": {"type": "none"}} if use_tools and last_round else {}),
         )
 
-        usage["input_tokens"] += response.usage.input_tokens
-        usage["output_tokens"] += response.usage.output_tokens
-
         if response.stop_reason == "refusal":
             reply = "Even Judy won't touch that one. Ask me about your budget instead."
-            return {"reply": reply, "tools_used": tools_used, "usage": usage}
+            return {"reply": reply, "tools_used": tools_used}
         if response.stop_reason != "tool_use":
             break
 
@@ -150,7 +146,7 @@ def ask_judy(db, user_id, messages, system, use_tools=True):
         messages.append({"role": "user", "content": results})
 
     reply = "".join(b.text for b in response.content if b.type == "text").strip()
-    return {"reply": reply, "tools_used": tools_used, "usage": usage}
+    return {"reply": reply, "tools_used": tools_used}
 
 def cached_card(user_id, system):
     """(key, card). card is None on a miss."""
